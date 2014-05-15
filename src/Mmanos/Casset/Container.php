@@ -172,14 +172,31 @@ class Container
 	public function scripts()
 	{
 		$assets = array();
-		
+
+        foreach ($this->dependencies['js'] as $dependency) {
+            $asset = $this->findDependency($dependency);
+            if ($asset !== false && is_array($asset)) {
+                $assets[$asset['source']] = $this->process($asset);
+            }
+        }
+
 		foreach ($this->assets as $asset) {
 			if ('js' !== $asset['ext']) {
 				continue;
 			}
+
+            if (isset($assets[$asset['source']])) {
+                continue;
+            }
+
+            if ($asset['dependencies']) {
+                //-- TODO if there is a non-global dependency resolve here.
+            }
 			
-			$assets[] = $this->process($asset);
+            $assets[$asset['source']] = $this->process($asset);
 		}
+
+        $assets = array_values($assets);
 		
 		if (empty($assets)) {
 			return '';
@@ -528,4 +545,20 @@ class Container
 			'url'        => str_ireplace($this->public_path, '', $file),
 		));
 	}
+
+    /**
+     * Match a dependency with an asset
+     * @param $source The filename + relative path to match inside the asset's source
+     * @return bool|array
+     */
+    protected function findDependency($source) {
+        foreach ($this->assets as $i => $asset) {
+            if ($source === $asset['source']) {
+                return $asset;
+                break;
+            }
+        }
+
+        return false;
+    }
 }
