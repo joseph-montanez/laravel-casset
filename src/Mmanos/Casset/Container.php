@@ -173,30 +173,35 @@ class Container
 	{
 		$assets = array();
 
-        foreach ($this->dependencies['js'] as $dependency) {
-            $asset = $this->findDependency($dependency);
-            if ($asset !== false && is_array($asset)) {
-                $assets[$asset['source']] = $this->process($asset);
-            }
-        }
+		foreach ($this->dependencies['js'] as $dependency) {
+			$asset = $this->findDependency($dependency);
+			if ($asset !== false && is_array($asset) && !isset($assets[$asset['source']])) {
+				$assets[$asset['source']] = $this->process($asset);
+			}
+		}
 
 		foreach ($this->assets as $asset) {
 			if ('js' !== $asset['ext']) {
 				continue;
 			}
 
-            if (isset($assets[$asset['source']])) {
-                continue;
-            }
+			if (isset($assets[$asset['source']])) {
+				continue;
+			}
 
-            if ($asset['dependencies']) {
-                //-- TODO if there is a non-global dependency resolve here.
-            }
+			if (count($asset['dependencies']) > 0) {
+				foreach ($asset['dependencies'] as $dependency) {
+					$resolved = $this->findDependency($dependency);
+					if ($resolved !== false && is_array($resolved) && !isset($assets[$resolved['source']])) {
+						$assets[$resolved['source']] = $this->process($resolved);
+					}
+				}
+			}
 			
-            $assets[$asset['source']] = $this->process($asset);
+			$assets[$asset['source']] = $this->process($asset);
 		}
 
-        $assets = array_values($assets);
+		$assets = array_values($assets);
 		
 		if (empty($assets)) {
 			return '';
@@ -546,19 +551,19 @@ class Container
 		));
 	}
 
-    /**
-     * Match a dependency with an asset
-     * @param $source The filename + relative path to match inside the asset's source
-     * @return bool|array
-     */
-    protected function findDependency($source) {
-        foreach ($this->assets as $i => $asset) {
-            if ($source === $asset['source']) {
-                return $asset;
-                break;
-            }
-        }
+	/**
+	 * Match a dependency with an asset
+	 * @param $source The filename + relative path to match inside the asset's source
+	 * @return bool|array
+	 */
+	protected function findDependency($source) {
+		foreach ($this->assets as $i => $asset) {
+			if ($source === $asset['source']) {
+				return $asset;
+				break;
+			}
+		}
 
-        return false;
-    }
+		return false;
+	}
 }
